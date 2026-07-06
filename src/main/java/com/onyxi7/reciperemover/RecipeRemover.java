@@ -4,7 +4,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.Logger;
 
-@Mod(modid = RecipeRemover.MODID, name = RecipeRemover.NAME, version = RecipeRemover.VERSION)
+@Mod(modid = RecipeRemover.MODID, name = RecipeRemover.NAME, version = RecipeRemover.VERSION, updateJSON = "")
 public class RecipeRemover {
     public static final String MODID = "reciperemover";
     public static final String NAME = "Recipe Remover";
@@ -14,6 +14,6 @@ public class RecipeRemover {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        System.out.println("[RecipeRemover] loaded correctly");
+        System.out.println("[RecipeRemover] Loaded correctly");
     }
 }

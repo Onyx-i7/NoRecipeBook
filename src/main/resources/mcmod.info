@@ -5,7 +5,7 @@
   "description": "A simple mod that removes the recipe book",
   "version": "${version}",
   "mcversion": "${mcversion}",
-  "url": "https://example.com",
+  "url": "https://github.com/Onyx-i7/RecipeRemover",
   "updateUrl": "",
   "authorList": ["Onyx-i7"],
   "credits": "",
