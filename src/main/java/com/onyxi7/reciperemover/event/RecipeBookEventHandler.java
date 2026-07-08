@@ -1,6 +1,6 @@
-package com.onyxi7.reciperemover.event;
+package com.onyxi7.norecipebook.event;
 
-import com.onyxi7.reciperemover.RecipeRemover;
+import com.onyxi7.norecipebook.norecipebook;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -15,7 +15,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import java.lang.reflect.Field;
 import java.util.List;
 
-@Mod.EventBusSubscriber(modid = RecipeRemover.MODID, value = Side.CLIENT)
+@Mod.EventBusSubscriber(modid = NoRecipeBook.MODID, value = Side.CLIENT)
 public class RecipeBookEventHandler {
 
     @SubscribeEvent
