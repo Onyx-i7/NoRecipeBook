@@ -7,9 +7,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.inventory.GuiCrafting;
 import net.minecraft.client.gui.inventory.GuiInventory;
-import net.minecraft.client.gui.recipebook.GuiRecipeBook;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -27,21 +25,12 @@ public class RecipeBookEventHandler {
     // Cached reflection fields and methods (Lazy Loading)
     private static Field recipeBookField = null;
     private static Field recipesField = null;
+    private static Field visibleField = null;
     private static Method clearMethod = null;
     private static boolean fieldsInitialized = false;
     
     // Track if we already checked for the stuck recipe book on this world session
     private static boolean checkedStuckBook = false;
-    
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public static void onGuiOpen(GuiOpenEvent event) {
-        // Prevent the recipe book from opening in the future
-        if (event.getGui() instanceof GuiRecipeBook) {
-            event.setCanceled(true);
-            NoRecipeBook.logger.debug("[NoRecipeBook] Blocked GuiRecipeBook from opening");
-        }
-    }
     
     @SubscribeEvent
     @SideOnly(Side.CLIENT)
@@ -61,15 +50,9 @@ public class RecipeBookEventHandler {
         if (!checkedStuckBook) {
             checkedStuckBook = true;
             
-            // If the current screen is the recipe book, close it immediately
-            if (mc.currentScreen instanceof GuiRecipeBook) {
-                mc.displayGuiScreen(null);
-                NoRecipeBook.logger.info("[NoRecipeBook] Closed stuck GuiRecipeBook on world join");
-            }
-            
-            // Also check if we're in an inventory/crafting screen with the book button visible
+            // Check if we're in an inventory/crafting screen
             if (mc.currentScreen instanceof GuiInventory || mc.currentScreen instanceof GuiCrafting) {
-                closeRecipeBookButton(mc.currentScreen);
+                closeRecipeBookPanel((GuiContainer) mc.currentScreen);
             }
         }
     }
@@ -85,12 +68,17 @@ public class RecipeBookEventHandler {
             // 1. Hide the recipe book button (ID 10 in 1.12.2)
             closeRecipeBookButton(gui);
             
-            // 2. Clear the GUI's recipe book (if accessible)
+            // 2. Close the recipe book panel if it's open
+            if (gui instanceof GuiContainer) {
+                closeRecipeBookPanel((GuiContainer) gui);
+            }
+            
+            // 3. Clear the GUI's recipe book (if accessible)
             if (gui instanceof GuiContainer) {
                 clearGuiRecipeBook((GuiContainer) gui);
             }
             
-            // 3. Clear the player's recipe book (main source of lag)
+            // 4. Clear the player's recipe book (main source of lag)
             clearPlayerRecipeBook();
         }
     }
@@ -102,6 +90,41 @@ public class RecipeBookEventHandler {
         if (event.getEntity() instanceof EntityPlayer && event.getEntity().world.isRemote) {
             clearPlayerRecipeBook();
             checkedStuckBook = false; // Reset flag so we check again on next world join
+        }
+    }
+    
+    /**
+     * Closes the recipe book panel if it's currently open in the GUI
+     */
+    private static void closeRecipeBookPanel(GuiContainer gui) {
+        if (gui == null) return;
+        
+        try {
+            // Initialize cached fields on first run
+            if (!fieldsInitialized) {
+                initializeFields(gui.getClass());
+                fieldsInitialized = true;
+            }
+            
+            if (recipeBookField != null) {
+                Object book = recipeBookField.get(gui);
+                if (book != null) {
+                    // Set the book to invisible/closed
+                    if (visibleField != null) {
+                        visibleField.setBoolean(book, false);
+                    }
+                    
+                    // Try to call setVisible(false) method if it exists
+                    try {
+                        Method setVisibleMethod = book.getClass().getMethod("setVisible", boolean.class);
+                        setVisibleMethod.invoke(book, false);
+                    } catch (NoSuchMethodException ignored) {
+                        // Method doesn't exist, that's okay
+                    }
+                }
+            }
+        } catch (Exception e) {
+            NoRecipeBook.logger.debug("[NoRecipeBook] Could not close recipe book panel: " + e.getMessage());
         }
     }
     
@@ -210,6 +233,13 @@ public class RecipeBookEventHandler {
                 if (mc.currentScreen instanceof GuiContainer) {
                     Object book = recipeBookField.get(mc.currentScreen);
                     if (book != null) {
+                        // Find visible field
+                        visibleField = findField(book.getClass(), 
+                            "visible", "field_194395_v", "field_193018_j");
+                        if (visibleField != null) {
+                            visibleField.setAccessible(true);
+                        }
+                        
                         // Find recipes field
                         recipesField = findField(book.getClass(), 
                             "recipes", "field_194396_w", "field_193019_k", "field_194199_g");
